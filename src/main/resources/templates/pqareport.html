@@ -1,0 +1,67 @@
+<html xmlns:layout="http://www.w3.org/1999/xhtml">
+<head th:replace="fragments/head :: head"></head>
+<body>
+
+
+<div id="app" layout:fragment="content">
+
+
+    <form class="form" @submit.prevent>
+
+        <div class="form-group">
+            <label>業績年月</label>
+            <input type="month" v-model="month" @change="monthChange"/>
+        </div>
+
+        <div class="form-group">
+            <label>業績日期</label>
+            <input type="date" v-model="sales_sdate"/>
+            <input type="date" v-model="sales_edate"/>
+        </div>
+
+        <button class="btn btn-primary mb-2" @click="query">查詢</button>
+    </form>
+
+
+</div>
+<th:block layout:fragment="script">
+
+
+    <script th:inline="javascript">
+
+       const vue = new Vue({
+          el:'#app',
+          data:{
+            month:'',
+            sales_sdate:'',
+            sales_edate:'',
+            dash:"-",
+            defaultDate:"25"
+          },methods:{
+                query(){
+                    var url= [[@{/pqareport/report}]];
+                    var params = new URLSearchParams();
+
+                    url+="?date=" + encodeURIComponent(this.month.replace(/-/g,"")) + "&sales_sdate=" + encodeURIComponent(this.sales_sdate.replace(/-/g,""))  + "&sales_edate="+ encodeURIComponent(this.sales_edate.replace(/-/g,""));
+                    window.open(url)
+                },
+                monthChange(){
+                    let _month =this.month.replace(/-/g,"");
+                    this.sales_sdate= moment(_month + this.defaultDate).add(-2, 'months').format('YYYY-MM-DD')
+                    this.sales_edate= moment(_month + this.defaultDate).add(-1, 'months').format('YYYY-MM-DD')
+                }
+          },mounted:function(){
+                this.month =moment().add(-1, 'months').format('YYYY-MM');
+                this.sales_sdate= moment().add(-2, 'months').format('YYYY-MM') + this.dash + this.defaultDate;
+                this.sales_edate = this.month + this.dash + this.defaultDate;
+
+                //this.month =moment().format('YYYY-MM');
+                //this.month='2019-08'
+          }
+       })
+
+    </script>
+</th:block>
+
+</body>
+</html>

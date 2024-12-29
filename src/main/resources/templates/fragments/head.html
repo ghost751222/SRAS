@@ -1,0 +1,203 @@
+<head th:fragment="head" xmlns:th="http://www.w3.org/1999/xhtml">
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+<!--    <meta th:name="${_csrf.parameterName}" th:content="${_csrf.token}"/>-->
+    <meta content="ie=edge" http-equiv="x-ua-compatible"/>
+    <script th:src="@{/js/lib/vue.min.js}"></script>
+    <script th:src="@{/js/lib/xlsx.min.js}"></script>
+    <script th:src="@{/js/lib/moment-with-locales.min.js}"></script>
+    <script th:src="@{/js/lib/vuetable-2.js}"></script>
+    <script th:src="@{/js/lib/axios.min.js}"></script>
+    <script th:src="@{/js/lib/jquery.min.js}"></script>
+    <script th:src="@{/js/lib/bootstrap.min.js}"></script>
+    <script th:src="@{/js/lib/bootstrap.bundle.min.js}"></script>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/sras.min.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/vue.dialog.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/all.min.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/vuetable.customize.css}"/>
+    <script type="text/javascript" th:inline="javascript">
+
+
+        Vue.use(Vuetable);
+        Vue.component('vuetable-pagination', Vuetable.VuetablePagination)
+        Vue.component('modal', {
+            template: '#modal-template'
+        })
+
+        Vue.component('datatable', {
+            template: '#vuetable-template',
+            watch:{
+               records(newVal, oldVal) {
+                  this.$refs.vuetable.refresh();
+               },
+               fields(newVal, oldVal){
+
+                   if(this.showButton && newVal.indexOf("__slot:actions") == -1){
+                       newVal.push("__slot:actions")
+                   }
+                   this.$nextTick(()=>{
+                        this.$refs.vuetable.normalizeFields()
+                   })
+               }
+            },
+            props: {
+                  showButton:{
+                    default:true,
+                    type:Boolean
+                  },
+                  fields:{
+                    default:[],
+                    type:Object
+                  },
+                  records:{
+                     default:[],
+                     type:Array
+                  },
+                  perPage:{
+                    default:10,
+                    type:Number
+                  },
+                  apiMode:{
+                    default:false,
+                    type:Boolean
+                  }
+              },methods:{
+                    onPaginationData(paginationData){
+                        this.$refs.pagination.setPaginationData(paginationData)
+                    },
+                    onChangePage(page){
+                        this.$refs.vuetable.changePage(page)
+                    },
+                    dataManager(sortOrder, pagination){
+                        if (this.records.length < 1) return this.records;
+
+                         let local = this.records;
+                         pagination = this.$refs.vuetable.makePagination(
+                            local.length,
+                            this.perPage
+                         );
+
+                         let from = pagination.from - 1;
+                         let to = from + this.perPage;
+
+                         return {
+                            pagination: pagination,
+                            data: local.slice(from, to)
+                         };
+                    },editRow(data){
+                        this.$emit('edit-row',data);
+                    },deleteRow(data){
+                         this.$emit('delete-row',data);
+                    },hidRow(data){
+                       vueGlobalRowData = data
+                    }
+              },mounted:function(){
+              }
+        })
+
+        Vue.prototype.baseUrl = [[@{/}]]
+        Vue.prototype.$http = axios;
+        Vue.prototype.csrfName = [[${_csrf.parameterName}]]
+        Vue.prototype.$csrfToken = [[${_csrf.token}]]
+        //Vue.prototype.$csrfToken = document.querySelector('meta[name=[[${_csrf.parameterName}]]]').getAttribute("content")
+         Vue.prototype.$config={
+            headers:{
+                'Content-Type': 'application/json;charset=UTF-8',
+                "X-CSRF-TOKEN": Vue.prototype.$csrfToken
+            }
+         }
+        Vue.prototype.$tableCss={
+            table:{
+                    tableClass: 'table table-striped table-bordered table-hovered',
+                    loadingClass: 'loading',
+                    ascendingIcon: 'glyphicon glyphicon-chevron-up',
+                    descendingIcon: 'glyphicon glyphicon-chevron-down',
+                    handleIcon: 'glyphicon glyphicon-menu-hamburger'
+                },pagination:{
+                            infoClass: 'pull-right',
+                            wrapperClass: 'vuetable-pagination pull-right',
+                            activeClass: 'btn-info',
+                            disabledClass: 'disabled',
+                            pageClass: 'btn btn-border',
+                            linkClass: 'btn btn-border',
+                            icons: {
+                              first: '',
+                              prev: '',
+                              next: '',
+                              last: ''
+                            }
+                }
+        }
+
+
+
+
+    </script>
+
+    <script type="text/x-template" id="vuetable-template">
+        <div>
+
+            <vuetable-pagination ref="pagination"
+                                 :css="this.$tableCss.pagination"
+                                 @vuetable-pagination:change-page="onChangePage"
+            ></vuetable-pagination>
+            <vuetable ref="vuetable"
+                      id="table"
+                      :api-mode="apiMode"
+                      pagination-path="pagination"
+                      :data-manager="dataManager"
+                      :per-page="perPage"
+                      :fields="fields"
+                      :css="this.$tableCss.table"
+                      @vuetable:pagination-data="onPaginationData">
+                <template slot="actions" scope="props">
+                    <div class="table-button-container">
+                        <button @click="hidRow(props.rowData)" class="d-none" id="vueHid">
+
+                        </button>
+                        <button class="btn btn-warning btn-sm" @click="editRow(props.rowData)">
+                            <span class="glyphicon glyphicon-pencil"></span> Edit
+                        </button>&nbsp;&nbsp;
+                        <button class="btn btn-danger btn-sm" @click="deleteRow(props.rowData)">
+                            <span class="glyphicon glyphicon-trash"></span> Delete
+                        </button>&nbsp;&nbsp;
+                        <slot name="customized" :rowData="props.rowData">
+                        </slot>
+                    </div>
+                </template>
+            </vuetable>
+
+        </div>
+
+
+    </script>
+
+    <script type="text/x-template" id="modal-template">
+        <transition name="modal">
+            <div class="modal-mask">
+                <div class="modal-wrapper">
+                    <div class="modal-container">
+
+                        <div class="modal-header">
+                            <slot name="header">
+
+                            </slot>
+                        </div>
+
+                        <div class="modal-body">
+                            <slot name="body">
+                            </slot>
+                        </div>
+
+                        <div class="modal-footer">
+                            <slot name="footer">
+
+                            </slot>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </transition>
+    </script>
+</head>

@@ -1,0 +1,96 @@
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" th:fragment="sidebar">
+
+
+    <a class="sidebar-brand d-flex align-items-center justify-content-center" th:href="@{/}">
+        <div class="sidebar-brand-icon rotate-n-15">
+            <i class="fas fa-laugh-wink"></i>
+        </div>
+        <div class="sidebar-brand-text mx-3">SRAS</div>
+    </a>
+
+    <hr class="sidebar-divider my-0">
+
+    <li class="nav-item" th:each="menu,iter : ${session.usermenu}">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" th:data-target="'#' + ${menu.key.getDisplay_name()}" aria-expanded="true"
+           aria-controls="collapseTwo">
+            <i class="fas fa-fw fa-cog"></i>
+            <span th:text="${menu.key.getDisplay_name()}">No menu Name</span>
+        </a>
+        <div th:id="${menu.key.getDisplay_name()}" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <h6 class="collapse-header"></h6>
+                <div th:each="function : ${menu.value}">
+                    <a class="collapse-item" th:href="@{${function.program_url}}" th:text="${function.display_name}" target="iframeMain"></a>
+                </div>
+            </div>
+        </div>
+
+        <hr class="sidebar-divider">
+    </li>
+
+
+    <!--    <li class="nav-item">-->
+    <!--        <a class="nav-link" href="index.html">-->
+    <!--            <i class="fas fa-fw fa-tachometer-alt"></i>-->
+    <!--            <span>Dashboard</span></a>-->
+    <!--    </li>-->
+
+
+<!--    <hr class="sidebar-divider">-->
+<!--    <li class="nav-item">-->
+<!--        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#sysManager" aria-expanded="true"-->
+<!--           aria-controls="collapseTwo">-->
+<!--            <i class="fas fa-fw fa-cog"></i>-->
+<!--            <span>系統管理</span>-->
+<!--        </a>-->
+<!--        <div id="sysManager" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">-->
+<!--            <div class="bg-white py-2 collapse-inner rounded">-->
+<!--                <h6 class="collapse-header"></h6>-->
+<!--                <a class="collapse-item" th:href="@{/user}" target="iframeMain">用戶管理</a>-->
+<!--                <a class="collapse-item" th:href="@{/group}" target="iframeMain">群組管理</a>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </li>-->
+
+<!--    <hr class="sidebar-divider">-->
+<!--    <li class="nav-item">-->
+<!--        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#psaeManager" aria-expanded="true"-->
+<!--           aria-controls="collapseTwo">-->
+<!--            <i class="fas fa-fw fa-cog"></i>-->
+<!--            <span>文本轉譯管理</span>-->
+<!--        </a>-->
+<!--        <div id="psaeManager" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">-->
+<!--            <div class="bg-white py-2 collapse-inner rounded">-->
+<!--                <h6 class="collapse-header"></h6>-->
+<!--                <a class="collapse-item" th:href="@{/recognize}" target="iframeMain">文本轉譯</a>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </li>-->
+
+<!--    <hr class="sidebar-divider">-->
+<!--    <li class="nav-item">-->
+<!--        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#pqaManager" aria-expanded="true"-->
+<!--           aria-controls="collapseTwo">-->
+<!--            <i class="fas fa-fw fa-cog"></i>-->
+<!--            <span>語音質檢管理</span>-->
+<!--        </a>-->
+<!--        <div id="pqaManager" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">-->
+<!--            <div class="bg-white py-2 collapse-inner rounded">-->
+<!--                <h6 class="collapse-header"></h6>-->
+<!--                <a class="collapse-item" th:href="@{/pqa}" target="iframeMain">語音質檢查詢</a>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </li>-->
+
+    <div class="text-center d-none d-md-inline">
+        <button class="rounded-circle border-0" id="sidebarToggle"></button>
+    </div>
+    <script type="text/javascript">
+        $("a[target='iframeMain']").click(function(e){
+            if($("#accordionSidebar").attr('class').includes("toggled")){
+            console.log( $(e.target).parent().parent().parent()[0])
+                $(e.target).parent().parent().parent().toggleClass('show')
+            }
+        })
+    </script>
+</ul>

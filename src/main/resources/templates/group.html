@@ -1,0 +1,208 @@
+<html xmlns:layout="http://www.w3.org/1999/xhtml">
+<head th:replace="fragments/head :: head"></head>
+<body>
+
+
+<div id="app" layout:fragment="content">
+
+    <modal v-if="showModal">
+        <form slot="body" @submit.prevent="save">
+            <div class="form-group">
+                <label for="groupName">群組名稱</label>
+                <input type="text" class="form-control" id="groupName" required
+                       placeholder="Enter GroupName" v-model="group.name">
+            </div>
+
+            <div class="form-group">
+                <label for="groupName">群組權限</label>
+                <div class="row">
+                    <div class="col">
+                        <select class="form-control" multiple v-model="unSelectedChoice">
+                            <option v-for="uc in unChoice" :value="uc.program_name"> {{uc.display_name}}</option>
+                        </select>
+
+                    </div>
+
+                    <div class="col text-center my-auto">
+                        <i class="fa fa-angle-double-right" style="font-size:20px;cursor:hand" @click="right"></i>
+                        <br/>
+                        <i class="fa fa-angle-double-left" style="font-size:20px;cursor:hand" @click="left"></i>
+                    </div>
+
+                    <div class="col">
+                        <select class="form-control" multiple v-model="selectedChoice">
+                            <option v-for="c in choice" :value="c.program_name"> {{c.display_name}}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <hr/>
+            <button class="btn btn-primary">ok</button>
+            <input type="button" class="btn btn-primary" @click="close" value="close"/>
+        </form>
+    </modal>
+
+
+    <form class="form-inline" @submit.prevent>
+        <button type="submit" class="btn btn-primary mb-2" @click="addRow">{{addValue}}</button>
+    </form>
+
+    <datatable ref="datatable" :fields="fields" :records="records" @edit-row="editRow"
+               @delete-row="deleteRow"></datatable>
+</div>
+<th:block layout:fragment="script">
+
+
+    <script th:inline="javascript">
+
+       const vue = new Vue({
+          el:'#app',
+          data:{
+            action:null,
+            group:{
+                id:null,
+                name:null,
+                functions:[]
+            },
+            showModal: false,
+            fields:[],
+            records:[[${groups}]],
+            functions:[[${functions}]],
+            choice:[],
+            unChoice:[],
+            selectedChoice:[],
+            unSelectedChoice:[],
+            roles:[],
+            addValue:"新增群組"
+          },
+          watch: {
+            records(newVal, oldVal) {
+              this.$refs.vuetable.refresh();
+            }
+          },
+          methods:{
+              open(){
+                this.showModal=true;
+              },close(){
+                 this.showModal=false;
+              },right(){
+
+                this.unSelectedChoice.forEach(c=>{
+                    let index = this.unChoice.findIndex(item=>{
+                        if(item.program_name === c){
+                            vue.choice.push(item)
+                            return true;
+                        }
+                    });
+                    if(index != -1){
+                        this.unChoice.splice(index,1);
+                    }
+                })
+                this.unSelectedChoice=[];
+
+
+              },left(){
+                 this.selectedChoice.forEach(c=>{
+
+
+                    let index = this.choice.findIndex(item=>{
+                        if(item.program_name === c){
+                            vue.unChoice.push(item)
+                            return true;
+                        }
+                    });
+
+                    if(index != -1){
+                        this.choice.splice(index,1);
+
+                    }
+                })
+                this.selectedChoice=[];
+              },
+              save(){
+                   this.sendData()
+              },
+              addRow(){
+                  this.action = "add"
+                  this.group.id = 0;
+                  this.group.groupName = "";
+                  this.unChoice = this.functions;
+                  this.choice =[];
+                  this.open();
+              },
+               editRow(rowData){
+                  this.unChoice = this.functions;
+                  this.unSelectedChoice = rowData.functions
+                  this.right();
+                  this.action = "upd"
+                  this.group.id =rowData.id;
+                  this.group.name = rowData.name;
+
+                  this.open()
+
+                },
+                deleteRow(rowData){
+                  this.action = "del"
+                  this.group.id =rowData.id;
+                  this.group.name = rowData.name;
+                  this.sendData()
+                },
+                sendData(){
+                    const groupFunction =[];
+                    this.choice.forEach(c=>{
+                        groupFunction.push(c.program_name)
+                    })
+
+                    this.group.functions = groupFunction;
+                    const config = this.$config;
+                    config.url = [[@{/group}]]
+                    config.data = JSON.stringify(this.group)
+                    switch(this.action){
+                        case "add":
+                            config.method = 'post'
+                            break;
+                         case "del":
+                            config.method = 'delete'
+                            break;
+                         case "upd":
+                            config.method = 'put'
+                            break;
+                    }
+                    this.$http(config).then( (res)=>{
+                        if(res.data.status =='OK'){
+                             if(res.redirected) location.reload()
+                            vue.showModal = false;
+                            alert(res.data.message)
+                            location.reload();
+                        }
+                   }).catch(err => alert(err))
+              }
+          },mounted:function(){
+
+               this.records.forEach(r=>{
+                       r.groupFunctionName = []
+                       r.functions.forEach(f=>{
+                            r.groupFunctionName.push(this.functions.find(func=> func.program_name == f).display_name)
+                       })
+               })
+
+               this.fields=[{name:'name',title:'群組名稱'},{name:'groupFunctionName',title:'群組權限'}];
+           }
+
+       })
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+</th:block>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+<html xmlns:layout="http://www.w3.org/1999/xhtml">
+<head>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/sras.min.css}"/>
+    <link rel="stylesheet" type="text/css" th:href="@{/css/all.min.css}"/>
+</head>
+
+<body>
+    <div class="container" layout:fragment="content">
+        <div class="alert alert-warning">
+            <strong th:text="${errorMsg}"> </strong>
+        </div>
+    </div>
+</body>
+
+</html>

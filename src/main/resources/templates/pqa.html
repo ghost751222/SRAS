@@ -1,0 +1,301 @@
+<html xmlns:layout="http://www.w3.org/1999/xhtml" xmlns:th="http://www.w3.org/1999/html">
+<head th:replace="fragments/head :: head">
+</head>
+<style>
+
+    .vuetable tr td {
+        white-space : nowrap;
+         width:500px;
+    }
+
+    .form-control{
+        width:auto;
+    }
+    .hide{
+        display:none;
+    }
+
+</style>
+<body>
+<div id="app" layout:fragment="content" style="padding-left:15px">
+
+    <form class="form" @submit.prevent>
+        <div class="form-group mb-3">
+            <div class="form-row">
+                <label class="mr-3">任務日期:</label>
+                <input type="date" v-model="queryParameter.taskSDate" class="form-control mr-1"/>
+                <input type="date" v-model="queryParameter.taskEDate" class="form-control"/>
+            </div>
+        </div>
+
+        <div class="form-group mb-3 hide">
+            <div class="form-row">
+                <label class="mr-3">TL送件日期:</label>
+                <input type="date" v-model="queryParameter.tlSDate" class="form-control mr-1"/>
+                <input type="date" v-model="queryParameter.tlEDate" class="form-control"/>
+            </div>
+        </div>
+
+        <div class="form-row">
+
+            <div class="form-group mr-3">
+                <label>要保書編號</label>
+                <input v-model="queryParameter.applicationFormID" type="text" class="form-control"/>
+            </div>
+
+            <div class="form-group">
+                <label>質檢模板</label>
+                <select class="browser-default form-control" v-model="queryParameter.templateId">
+                    <option selected value=""></option>
+                    <option v-for=" t in templates" :value="t.id">
+                        {{t.name}}
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group ml-3 hide">
+                <label>工單狀態</label>
+                <select class="browser-default form-control" v-model="queryParameter.state">
+                    <option value="1000">未派單</option>
+                    <option value="1001">已派單</option>
+                    <option value="1002">流轉單</option>
+                    <option value="1003">結項單</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mb-2" @click="query">查詢</button>
+        <button type="submit" class="btn btn-primary mb-2" @click="exportExcel">Excel導出</button>
+    </form>
+
+    <div class="row">
+        <div class="form-group">
+
+            <ul class="list-group" style="flex-direction:row">
+                <li class="text-nowrap list-group-item d-flex justify-content-between align-items-center">
+                    總筆數
+                    <span class="badge badge-primary badge-pill">{{count}}</span>
+                </li>
+<!--                <li style="clear:both"-->
+<!--                    class="text-nowrap list-group-item d-flex justify-content-between align-items-center"-->
+<!--                    v-for="t in templates">-->
+<!--                    {{t.name}}<br/>-->
+<!--                    <span class="badge badge-primary" :name="t.name">{{t.count}}</span>-->
+<!--                </li>-->
+            </ul>
+
+        </div>
+    </div>
+
+    <div class="row">
+        <datatable ref="datatable" :fields="fields" :records="records" :show-button="false" :per-page="perPage"/>
+    </div>
+</div>
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+       const vue = new Vue({
+          el:'#app',
+          data:{
+            apiMode:false,
+            perPage:10,
+            queryParameter:{
+                tlSDate:"",
+                tlEDate:"",
+                taskSDate:"",
+                taskEDate:"",
+                applicationFormID:"",
+                templateId : "",
+                state:""
+            },
+            options :{
+                method: 'get',
+                credentials: "include",
+                headers:{
+                            'Content-Type': 'application/json;charset=UTF-8'
+
+                }
+            },
+            templates:[],
+            fields:[],
+            records:[],
+            queryUrl:"",
+            perPage:20
+
+          },computed:{
+                count(){
+                    return this.records.length;
+                },
+                apiUrl(){
+                    return this.queryUrl;
+                }
+          },watch :{
+                records(newVal,oldVal){
+                        this.perPage = newVal.length
+<!--                    this.templates.forEach(t=>{-->
+<!--                       let data = newVal.filter(n=>JSON.parse(n.task)["psae_productNameAbbre"] ==t.name)-->
+<!--                       t.count = data.length-->
+<!--                    })-->
+                }
+          },methods:{
+                query(){
+                    if(this.queryParameter.taskSDate=="" || this.queryParameter.taskEDate==""){
+                        alert('任務日期不可為空');
+                        return
+                    }
+
+                    this.records=[];
+                    let parameterUrl = new URLSearchParams(this.queryParameter).toString();
+                    this.queryUrl = [[@{/pqa/findAll}]] + '?' + parameterUrl
+                    var t =  document.querySelector("#table");
+                    this.options.headers["X-CSRF-TOKEN"]=this.$csrfToken
+                    fetch(this.queryUrl, this.options)
+                        .then(async function(res) {
+                            if(res.ok){
+                                 if(res.redirected) location.reload()
+                                 let data = await res.json();
+
+                                     data.forEach(d=>{
+
+
+                                     let jsonTask = JSON.parse(d.task);
+                                     for(let j in jsonTask)
+                                        d[j] =  jsonTask[j]
+
+                                     if(d["send_date"] && d["send_date"].indexOf("T") > -1){
+                                       d["send_date"] = d["send_date"].split("T")[0]
+                                     }
+                                     if(d["task_date"] && d["task_date"].indexOf("T") > -1){
+                                       d["task_date"] = d["task_date"].split("T")[0]
+                                     }
+
+                                     if(d["psae_TaskDuration"] && d["psae_TaskDuration"].indexOf(".") > -1){
+                                       d["psae_TaskDuration"] = d["psae_TaskDuration"].split(".")[0]
+                                     }
+
+
+                                })
+                                vue.records = data;
+
+                            }else{
+                                let data = await res.json();
+                                alert('System Error')
+                                console.log(data.message);
+                            }
+
+
+                    }).catch(function(err) {
+                        console.error(err)
+                    })
+                },
+                findTemplate(){
+
+                     this.options.headers["X-CSRF-TOKEN"]=this.$csrfToken
+                    fetch(this.baseUrl +'pqa/findTemplate',this.options).then(async res=>{
+                        var templates = await res.json()
+                        vue.templates = templates
+
+                    }).catch(err=> console.error(err))
+                },queryColumn(){
+                 this.options.headers["X-CSRF-TOKEN"]=this.$csrfToken
+                      fetch(this.baseUrl + "pqa/findColumn",this.options).then( async res=>{
+                        var columns = await res.json();
+                        var dataColumns=[]
+                        columns.forEach(c=>{
+                            if(c.field_name =='psae_SubList') return
+                            let dataColumn={};
+                            dataColumn.name = c.field_name;
+                            dataColumn.title =c.display_name
+                            dataColumn.sortField =c.field_name;
+                            dataColumn.titleClass='text-nowrap'
+                            //dataColumn.callback=`timeFormat|${c.field_name}`
+                            dataColumns.push(dataColumn)
+                        })
+                        vue.fields =dataColumns;
+                        vue.$nextTick(()=>{
+                            vue.$refs.vuetable.normalizeFields()
+                         })
+                    }).catch(err=>{console.error(err)})
+
+                },exportExcel(){
+                    var table1 = document.querySelector("#table");
+                    var sheet = XLSX.utils.table_to_sheet(table1);//將一個table物件轉換成一個sheet物件
+                     openDownloadDialog(sheet2blob(sheet),'下載.xlsx');
+                }
+          },mounted:function(){
+             this.queryColumn();
+             this.findTemplate();
+             this.queryParameter.taskSDate = moment().add(-30,'days').format('YYYY-MM-DD');
+             this.queryParameter.taskEDate = moment().format('YYYY-MM-DD');
+             //this.queryParameter.taskSDate="2019-08-19"
+             //this.queryParameter.taskEDate="2019-08-19"
+          }
+       })
+
+function openDownloadDialog(url, saveName)
+	{
+		if(typeof url == 'object' && url instanceof Blob)
+		{
+			url = URL.createObjectURL(url); // 创建blob地址
+		}
+		var aLink = document.createElement('a');
+		aLink.href = url;
+		aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名，可以不要后缀，注意，file:///模式下不会生效
+		var event;
+		if(window.MouseEvent) event = new MouseEvent('click');
+		else
+		{
+			event = document.createEvent('MouseEvents');
+			event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		}
+		aLink.dispatchEvent(event);
+	}
+
+
+
+
+function sheet2blob(sheet, sheetName) {
+		sheetName = sheetName || 'sheet1';
+		var workbook = {
+			SheetNames: [sheetName],
+			Sheets: {}
+		};
+		workbook.Sheets[sheetName] = sheet;
+		// 生成excel的配置项
+		var wopts = {
+			bookType: 'xlsx', // 要生成的文件类型
+			bookSST: false, // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+			type: 'binary'
+		};
+		var wbout = XLSX.write(workbook, wopts);
+		var blob = new Blob([s2ab(wbout)], {type:"application/octet-stream"});
+		// 字符串转ArrayBuffer
+		function s2ab(s) {
+			var buf = new ArrayBuffer(s.length);
+			var view = new Uint8Array(buf);
+			for (var i=0; i!=s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+			return buf;
+		}
+		return blob;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+</th:block>
+
+
+</body>
+</html>
+
